@@ -1,26 +1,13 @@
 "use strict";
 
 var child_process = require('child_process');
+var request = require('request');
 var moment = require('moment');
 
 var ONE_MINUTE = 1000 * 60;
+var URL = 'https://code.jquery.com/jquery-migrate-3.0.0.min.js';
 
 var isWifiOn;
-
-function ping(host) {
-	return new Promise(function (resolve, reject) {
-	    try {
-            var command = "ping -c 1 " + host;
-
-            child_process.exec(command, function (error, stdout, stderr) {
-                resolve(stderr.match(/Unknown host/) === null);
-            });
-        } catch (error) {
-	        console.log("Error " + error.stack);
-	    	reject(error);
-		}
-	});
-}
 
 function turnWifiOff(){
     isWifiOn = false;
@@ -53,23 +40,18 @@ function run() {
 		}, ONE_MINUTE);
 	};
 
-	ping("www.google.co.za")
-		.then(function (result) {
-			if (!result) {
-				console.log(moment().format('MMMM Do, h:mm:ss a') + ' => Cannot ping - cycling power');
-				turnWifiOff()
-					.then(turnWifiOn)
-					.then(function () {
-						rerun();
-					});
-			} else {
-				rerun();
-			}
-		})
-		.catch(function (error) {
-			console.log(moment().format('MMMM Do, h:mm:ss a') + ' => ' + error.stack);
-			rerun();
-		});
+    request(URL, function (error, response, body) {
+        if (!error && response.statusCode == 200) {
+            console.log(moment().format('MMMM Do, h:mm:ss a') + ' => Succeeded');
+            rerun();
+        }else{
+            turnWifiOff()
+                .then(turnWifiOn)
+                .then(function () {
+                    rerun();
+                });
+		}
+    });
 }
 
 run();
